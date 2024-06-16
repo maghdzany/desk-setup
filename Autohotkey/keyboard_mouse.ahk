@@ -2,7 +2,9 @@
 
 #Persistent ; Membuat skrip tetap berjalan
 
-;===============================7ZIP================================================
+nircmdPath := "E:\DATA\CODINGAN\!MY GITHUB REPO\desk-setup\Autohotkey\nircmd.exe"
+
+;=========================================7ZIP================================================
 Loop
     {
         IfWinExist, ahk_exe 7zFM.exe ; Memeriksa apakah jendela "7zFM.exe" ada
@@ -21,32 +23,48 @@ Loop
 ;===================================================================================
 
 
+
+;======================================CHAT GPT=======================================
 Home::
-Process, Exist, chrome.exe 
-If Not ErrorLevel
-{
-	; Jika Chrome sudah berjalan, cari tab dengan URL yang mengandung "chat.openai.com"
-	WinActivate, ahk_exe chrome.exe
-	ControlGet, hWnd, hWnd,, Chrome_RenderWidgetHostHWND1, A
-	if (hWnd)
-	{
-		; Aktifkan tab dengan URL yang mengandung "chat.openai.com"
-		ControlSend,, ^1, A ; Tekan Ctrl+1 untuk pindah ke tab pertama (sesuaikan jika perlu)
-		Sleep, 100
-		ControlSend,, ^f, A ; Tekan Ctrl+F untuk membuka fitur pencarian
-		Sleep, 100
-		Send, chat.openai.com
-		Sleep, 100
-		ControlSend,, {Esc}, A ; Tutup fitur pencarian setelah pencarian
-	}
-}
-Else
-{
-	Run, "C:\Program Files\Google\Chrome\Application\chrome.exe" "https://chat.openai.com"
-}
+IfWinExist, ahk_exe Chrome.exe
+    {
+        WinActivate
+        Loop
+        {
+            Send, ^{Tab}
+            Sleep, 50
+            WinGetTitle, currentTitle, A
+            IfInString, currentTitle, ChatGPT
+            {
+                Send, +{Esc}
+                return
+            } 
+            If (A_Index > 2)
+            {
+                WinGetTitle, checkTitle, A
+                If (currentTitle = checkTitle)
+                {
+                    Send, ^t
+                    Sleep, 500
+                    Send, chatgpt.com{Enter}
+                    return
+                }
+            }
+         }    
+    }
+    else
+    {
+        Run, chrome.exe "https://chatgpt.com"
+        Sleep 4000
+        Send, +{Esc}
+    }
 return
 
+;=====================================================================================
 
+
+
+;========================================CHROME========================================
 Insert::
 Process, Exist, chrome.exe 
 If Not ErrorLevel
@@ -58,19 +76,25 @@ Else
 	WinActivate, ahk_exe chrome.exe
 }
 return
+;======================================================================================
 
+
+
+;====================================EVERYTHING SEARCH=================================
 Pause::
-Process, Exist, Everything.exe 
-If Not ErrorLevel
-{
-	Run, C:\Program Files\Everything\Everything.exe 
-}
-Else
-{
-	WinActivate, ahk_exe Everything.exe
+if (programStatus = 0) {
+    Run, C:\Program Files\Everything\Everything.exe ; Menjalankan program Everything
+    programStatus := 1 ; Mengatur status program menjadi terbuka
+} else {
+    ; Menutup program Everything dengan mengirimkan sinyal Alt+F4
+    IfWinExist, ahk_exe Everything.exe
+    {
+        WinClose
+    }
+    programStatus := 0 ; Mengatur status program menjadi tertutup
 }
 return
-
+;====================================================================================
 
 
 
@@ -202,28 +226,43 @@ Space::
         Send, {Space}
     }
     return
-
-
-
 #IfWinActive ; Mengakhiri kondisi khusus saat berada di dalam program Blender
 ;==============================================================================================
 
 
-;INI BUAT FUNGSI MOUSE
+;======================================MOUSE====================================================
 XButton1::Send {Browser_Back}
 XButton2::Send {Browser_Forward}
 XButton1 & WheelUp::Send {Volume_Up}
 XButton1 & WheelDown::Send {Volume_Down}
-XButton1 & MButton::WinSet, AlwaysOnTop, Toggle, A
+XButton1 & MButton::
+	WinSet, AlwaysOnTop, Toggle, A
+	SoundBeep
 XButton2 & LButton::Send ^c
 XButton2 & RButton::Send ^v
 XButton1 & LButton::Send ^z
-XButton1 & RButton::Send ^y
+XButton1 & RButton::Send !{LButton}
 XButton2 & WheelUp::Send {WheelLeft}
 XButton2 & WheelDown::Send {WheelRight}
 
+XButton2 & MButton:: ;THIS IS FOR MUTE CURRENT WINDOW
+    WinGet, active_id, ID, A
+    WinGet, process_name, ProcessName, ahk_id %active_id%
+    Run, %nircmdPath% muteappvolume %process_name% 2
+return
 
-;===================================NUMPAD====================================
+~LButton & RButton::^s 
+
+~RButton & LButton::^#v
+
+~MButton & RButton::Run %nircmdPath% monitor off
+
+XButton1 & XButton2:: Run, %nircmdPath% savescreenshot "C:/Users/Sandemo/Pictures/Screenshots/Screenshot.png"
+;==================================================================================================
+
+
+
+;===================================NUMPAD==========================================================
 F13::
 Run, explorer.exe "C:\Users\Sandemo\Desktop\ "
 return
@@ -238,38 +277,7 @@ return
     *Ctrl up::Send, {Shift up}  ; Ketika Ctrl dilepas, kirim Shift
 }
 #IfWinActive
-
-
-^m:: ; Ctrl+M to toggle mute/unmute
-{
-    ; Get the process ID of the active window
-    WinGet, active_pid, PID, A
-    
-    ; Toggle mute state for the active window's audio
-    if (active_pid) {
-        ; Loop through all audio sessions and find the one with the matching PID
-        Loop {
-            audioSession := ComObjCreate("IAudioSessionEnumerator", "{E58D1EED-44D9-468C-99B1-DBA2BAA2E8D0}")
-            sessionCount := audioSession.GetCount()
-            
-            Loop, % sessionCount {
-                session := audioSession.GetSession(A_Index - 1)
-                control := session.QueryInterface("{F8679F50-850A-41CF-9C72-430F290290C8}")
-                control.GetProcessId(session_pid)
-                
-                if (session_pid == active_pid) {
-                    control.GetMute(isMuted)
-                    control.SetMute(!isMuted, NULL) ; Toggle mute state
-                    break
-                }
-            }
-            break
-        }
-    }
-}
-
-
-
+;=======================================================================================================
 
 
 
@@ -333,3 +341,45 @@ Up::
         Send, {PgDn}
     }
     return
+;===============================================================================================================
+
+
+
+;=======================================KEYSTROEKS========================================================
+::codingan::
+Run, E:/DATA/CODINGAN/!MY GITHUB REPO/desk-setup/Autohotkey
+return
+    
+::reloadahk::
+Reload
+return
+
+::arara::
+Run, C:/Users/Sandemo/Desktop/ /
+return
+
+::ipconfig::
+Run, cmd.exe /k ipconfig
+return
+
+::devman::
+Run, devmgmt.msc
+return
+
+;==========================================================================================================
+SetTimer, SendF, 50  ; Set timer untuk mengirim key f setiap 50 milidetik (20 kali per detik)
+; Fungsi untuk mengirim key f
+SendF:
+IfWinActive, ahk_exe Code.exe  ; Ganti dengan nama proses yang sesuai
+{
+    ; Periksa apakah tombol XButton2 (tombol samping mouse) ditekan
+    if (GetKeyState("XButton2", "P"))
+    {
+        Send, f  ; Mengirim key f
+    }
+    else
+    {
+        SetTimer, SendF, Off  ; Matikan timer jika XButton2 dilepas
+    }
+}
+return
